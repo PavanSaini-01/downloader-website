@@ -28,7 +28,15 @@ app.get('/api/info', (req, res) => {
     }
 
     // Spawn yt-dlp process to get JSON info
-    const ytDlp = spawn(ytDlpPath, ['-J', videoURL]);
+    // Added flags to fix runtime error and bypass bot checks
+    const args = [
+        '-J',
+        '--js-runtimes', 'node',
+        '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        '--extractor-args', 'youtube:player_client=android',
+        videoURL
+    ];
+    const ytDlp = spawn(ytDlpPath, args);
 
     let dataBuffer = '';
     let errorBuffer = '';
@@ -117,7 +125,15 @@ app.get('/api/download', (req, res) => {
 
     res.header('Content-Disposition', `attachment; filename="video_${itag}.mp4"`);
 
-    const ytDlp = spawn(ytDlpPath, ['-f', itag, '-o', '-', url]);
+    const args = [
+        '-f', itag,
+        '-o', '-',
+        '--js-runtimes', 'node',
+        '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        '--extractor-args', 'youtube:player_client=android',
+        url
+    ];
+    const ytDlp = spawn(ytDlpPath, args);
 
     ytDlp.stdout.pipe(res);
 
