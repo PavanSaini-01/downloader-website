@@ -42,9 +42,8 @@ app.get('/api/info', (req, res) => {
     // Added flags to fix runtime error and bypass bot checks
     const args = [
         '-J',
-        '--js-runtimes', 'node',
-        '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        '--extractor-args', 'youtube:player_client=android',
+        '--no-playlist',
+        '--extractor-args', 'youtube:player_client=ios',
         videoURL
     ];
     const ytDlp = spawn(ytDlpPath, args);
@@ -143,9 +142,7 @@ app.get('/api/download', (req, res) => {
     const args = [
         '-f', itag,
         '-o', '-',
-        '--js-runtimes', 'node',
-        '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        '--extractor-args', 'youtube:player_client=android',
+        '--extractor-args', 'youtube:player_client=ios',
         url
     ];
     const ytDlp = spawn(ytDlpPath, args);
