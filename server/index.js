@@ -96,6 +96,10 @@ app.get('/api/info', (req, res) => {
                 title: info.title,
                 thumbnail: info.thumbnail,
                 lengthSeconds: info.duration,
+                channel: info.channel || info.uploader || 'Unknown',
+                uploader: info.uploader,
+                viewCount: info.view_count || 0,
+                uploadDate: info.upload_date,
                 formats: relevantFormats.map(f => {
                     const heightStr = `${f.height}p`;
                     const note = f.format_note && f.format_note !== heightStr ? ` ${f.format_note}` : '';

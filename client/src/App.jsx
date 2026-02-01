@@ -11,6 +11,36 @@ function App() {
   const [error, setError] = useState('');
   const [currentUrl, setCurrentUrl] = useState('');
 
+  const parseErrorMessage = (errorMsg) => {
+    if (!errorMsg) return 'Failed to fetch video info. Please check the URL.';
+
+    const msg = errorMsg.toLowerCase();
+
+    if (msg.includes('sign in') || msg.includes('not a bot')) {
+      return '🤖 YouTube bot detection triggered. Please add authentication cookies (see documentation) or try again later.';
+    }
+    if (msg.includes('private')) {
+      return '🔒 This video is private and cannot be downloaded.';
+    }
+    if (msg.includes('age') || msg.includes('restricted')) {
+      return '🔞 This video is age-restricted. Authentication required.';
+    }
+    if (msg.includes('unavailable') || msg.includes('not available')) {
+      return '❌ This video is unavailable or has been removed.';
+    }
+    if (msg.includes('copyright') || msg.includes('blocked')) {
+      return '⚠️ This video is blocked due to copyright restrictions.';
+    }
+    if (msg.includes('live')) {
+      return '📡 Live streams are not supported.';
+    }
+    if (msg.includes('premium') || msg.includes('members')) {
+      return '💎 This is members-only content and cannot be downloaded.';
+    }
+
+    return errorMsg;
+  };
+
   const handleSearch = async (url) => {
     setLoading(true);
     setError('');
@@ -28,7 +58,8 @@ function App() {
       setVideoInfo(response.data);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || 'Failed to fetch video info. Please check the URL.');
+      const rawError = err.response?.data?.error || 'Failed to fetch video info. Please check the URL.';
+      setError(parseErrorMessage(rawError));
     } finally {
       setLoading(false);
     }

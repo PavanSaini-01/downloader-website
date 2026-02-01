@@ -9,6 +9,11 @@ const formatSize = (bytes) => {
 };
 
 const QualitySelector = ({ formats, audioFormats, onDownload }) => {
+    // Find the best quality with audio (recommended)
+    const recommendedFormat = formats.find(f => f.hasAudio && f.qualityLabel.includes('720p'))
+        || formats.find(f => f.hasAudio && f.qualityLabel.includes('1080p'))
+        || formats.find(f => f.hasAudio);
+
     return (
         <div className="w-full max-w-2xl mx-auto fade-in" style={{ animationDelay: '0.2s' }}>
             <div className="bg-black/20 rounded-3xl p-8 border border-white/5 backdrop-blur-2xl">
@@ -33,6 +38,11 @@ const QualitySelector = ({ formats, audioFormats, onDownload }) => {
                                     <div className="text-2xl font-bold text-white group-hover:text-accent-color transition-colors">
                                         {format.qualityLabel || 'Standard'}
                                     </div>
+                                    {recommendedFormat && format.itag === recommendedFormat.itag && (
+                                        <span className="text-xs font-bold text-green-400 bg-green-400/10 border border-green-400/20 px-2 py-1 rounded">
+                                            ⭐ Recommended
+                                        </span>
+                                    )}
                                     {!format.hasAudio && (
                                         <span className="text-xs font-bold text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 px-2 py-1 rounded flex items-center gap-1">
                                             <FaVolumeMute size={10} /> Video Only
