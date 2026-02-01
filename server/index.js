@@ -10,7 +10,7 @@ app.use(cors());
 // Locally on Windows we might use the included binary.
 const fs = require('fs');
 const localBinaryPath = path.join(__dirname, 'bin', 'yt-dlp.exe');
-const ytDlpPath = fs.existsSync(localBinaryPath) ? localBinaryPath : 'yt-dlp';
+const ytDlpPath = (process.platform === 'win32' && fs.existsSync(localBinaryPath)) ? localBinaryPath : 'yt-dlp';
 
 process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception:', err);
