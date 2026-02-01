@@ -39,14 +39,12 @@ app.get('/api/info', (req, res) => {
     }
 
     // Spawn yt-dlp process to get JSON info
-    // Using multiple strategies to bypass bot detection
+    // Using multiple strategies to bypass bot detection and age restrictions
     const args = [
         '-J',
         '--no-playlist',
-        // Try multiple clients as fallback: ios,web,mweb
-        '--extractor-args', 'youtube:player_client=ios,web',
-        // Skip unavailable fragments (helps with some restricted videos)
-        '--extractor-args', 'youtube:skip=hls,dash',
+        // Android client works best for age-restricted content
+        '--extractor-args', 'youtube:player_client=android,ios',
         videoURL
     ];
 
@@ -158,8 +156,7 @@ app.get('/api/download', (req, res) => {
     const args = [
         '-f', itag,
         '-o', '-',
-        '--extractor-args', 'youtube:player_client=ios,web',
-        '--extractor-args', 'youtube:skip=hls,dash',
+        '--extractor-args', 'youtube:player_client=android,ios',
         url
     ];
 
