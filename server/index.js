@@ -134,7 +134,9 @@ app.get('/api/download', (req, res) => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Catch-all handler for any request that doesn't match an API route
-app.get('*', (req, res) => {
+// Catch-all handler for any request that doesn't match an API route
+// Using regex /.*/ to avoid Express 5 path-to-regexp strict parameter matching issue with '*'
+app.get(/.*/, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
