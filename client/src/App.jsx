@@ -65,19 +65,33 @@ function App() {
     }
   };
 
-  const handleDownload = (itag, container) => {
-    if (!currentUrl) return;
+  const handleDownload = (format) => {
+    if (!format) return;
 
-    // Use hidden iframe or window location to trigger download w/o replacing page content if possible, 
-    // but attachment header usually handles it fine in same window.
-    const getApiUrl = () => {
-      if (import.meta.env.VITE_API_URL !== undefined) {
-        return import.meta.env.VITE_API_URL;
-      }
-      return 'http://localhost:4000';
-    };
-    const apiUrl = getApiUrl();
-    window.location.href = `${apiUrl}/api/download?url=${encodeURIComponent(currentUrl)}&itag=${itag}&title=${encodeURIComponent(videoInfo?.title || '')}&container=${container || 'mp4'}`;
+    // Prefer direct CDN URL for faster downloads
+    if (format.url) {
+      // Create a temporary link element to trigger download with proper filename
+      const link = document.createElement('a');
+      link.href = format.url;
+      link.download = videoInfo?.title
+        ? `${videoInfo.title.replace(/[^a-zA-Z0-9 \-_]/g, '').replace(/\s+/g, '_').substring(0, 50)}_${format.qualityLabel}.${format.container}`
+        : `video_${format.itag}.${format.container}`;
+      link.target = '_blank'; // Open in new tab as fallback
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      // Fallback to server proxy if direct URL not available
+      if (!currentUrl) return;
+      const getApiUrl = () => {
+        if (import.meta.env.VITE_API_URL !== undefined) {
+          return import.meta.env.VITE_API_URL;
+        }
+        return 'http://localhost:4000';
+      };
+      const apiUrl = getApiUrl();
+      window.location.href = `${apiUrl}/api/download?url=${encodeURIComponent(currentUrl)}&itag=${format.itag}&title=${encodeURIComponent(videoInfo?.title || '')}&container=${format.container || 'mp4'}`;
+    }
   };
 
   return (

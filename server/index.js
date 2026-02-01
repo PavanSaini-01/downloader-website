@@ -110,7 +110,8 @@ app.get('/api/info', (req, res) => {
                         mimeType: `video/${f.ext}`,
                         hasAudio: f.acodec !== 'none',
                         hasVideo: f.vcodec !== 'none',
-                        size: f.filesize || f.filesize_approx || 0
+                        size: f.filesize || f.filesize_approx || 0,
+                        url: f.url // Direct CDN URL from yt-dlp
                     };
                 }),
                 audioFormats: audioFormats.map(f => ({
@@ -120,7 +121,8 @@ app.get('/api/info', (req, res) => {
                     mimeType: `audio/${f.ext}`,
                     hasAudio: true,
                     hasVideo: false,
-                    size: f.filesize || f.filesize_approx || 0
+                    size: f.filesize || f.filesize_approx || 0,
+                    url: f.url // Direct CDN URL
                 }))
             };
 
