@@ -17,8 +17,8 @@ function App() {
     setVideoInfo(null);
     setCurrentUrl(url);
     try {
-      // Assuming backend runs on port 4000
-      const response = await axios.get(`http://localhost:4000/api/info?url=${encodeURIComponent(url)}`);
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+      const response = await axios.get(`${apiUrl}/api/info?url=${encodeURIComponent(url)}`);
       setVideoInfo(response.data);
     } catch (err) {
       console.error(err);
@@ -33,7 +33,8 @@ function App() {
 
     // Use hidden iframe or window location to trigger download w/o replacing page content if possible, 
     // but attachment header usually handles it fine in same window.
-    window.location.href = `http://localhost:4000/api/download?url=${encodeURIComponent(currentUrl)}&itag=${itag}`;
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+    window.location.href = `${apiUrl}/api/download?url=${encodeURIComponent(currentUrl)}&itag=${itag}`;
   };
 
   return (

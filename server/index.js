@@ -6,7 +6,11 @@ const app = express();
 
 app.use(cors());
 
-const ytDlpPath = path.join(__dirname, 'bin', 'yt-dlp.exe');
+// Determine yt-dlp path. In Docker/Production we expect 'yt-dlp' to be in PATH.
+// Locally on Windows we might use the included binary.
+const fs = require('fs');
+const localBinaryPath = path.join(__dirname, 'bin', 'yt-dlp.exe');
+const ytDlpPath = fs.existsSync(localBinaryPath) ? localBinaryPath : 'yt-dlp';
 
 process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception:', err);
@@ -126,7 +130,7 @@ app.get('/api/download', (req, res) => {
     });
 });
 
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
