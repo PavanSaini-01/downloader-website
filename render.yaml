@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: frostloader
+    runtime: docker
+    region: oregon
+    plan: free
+    dockerContext: .
+    dockerfilePath: Dockerfile
+    envVars:
+      - key: PORT
+        value: 4000

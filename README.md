@@ -47,3 +47,21 @@ To build the client for production:
 cd client
 npm run build
 ```
+
+## Deployment (Render.com)
+
+This project is configured for easy deployment on Render using Docker.
+
+**Option 1: Blueprints (Recommended)**
+1.  Push this code to a GitHub repository.
+2.  In Render dashboard, click "New" > "Blueprint".
+3.  Connect your repository.
+4.  Render will automatically detect `render.yaml` and configure the service.
+5.  Click "Apply".
+
+**Option 2: Manual Docker Service**
+1.  Push code to GitHub.
+2.  Create a new "Web Service".
+3.  Connect your repository.
+4.  **Important**: Select **Docker** as the Runtime (not Node).
+5.  Create Web Service.

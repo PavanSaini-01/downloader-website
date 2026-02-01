@@ -12,6 +12,17 @@ const fs = require('fs');
 const localBinaryPath = path.join(__dirname, 'bin', 'yt-dlp.exe');
 const ytDlpPath = (process.platform === 'win32' && fs.existsSync(localBinaryPath)) ? localBinaryPath : 'yt-dlp';
 
+// Check yt-dlp version on startup
+const { execFile } = require('child_process');
+execFile(ytDlpPath, ['--version'], (error, stdout, stderr) => {
+    if (error) {
+        console.error('Error checking yt-dlp version:', error);
+        console.error('Make sure yt-dlp is installed and in PATH (or in bin/ for Windows).');
+    } else {
+        console.log(`Using yt-dlp version: ${stdout.trim()}`);
+    }
+});
+
 process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception:', err);
 });
@@ -110,20 +121,24 @@ app.get('/api/info', (req, res) => {
 
 // Download video
 app.get('/api/download', (req, res) => {
-    const { url, itag } = req.query; // itag here is actually format_id
+    const { url, itag, title, container } = req.query; // itag here is actually format_id
     if (!url || !itag) {
         return res.status(400).send('Missing url or quality');
     }
 
     console.log(`Starting download via yt-dlp: ${url} (format: ${itag})`);
 
-    // First fetch info quickly to get filename (optional, but good for UX)
-    // Or just stream efficiently. We need to set headers.
-    // To be fast, we can just use a generic filename or try to get it from a separate quick call.
-    // Let's use a generic name first to ensure speed, or use the one from frontend if passed?
-    // User didn't pass title. Let's assume generic.
+    const ext = container || 'mp4';
+    let filename = `video_${itag}.${ext}`;
+    if (title) {
+        // Sanitize title: remove non-alphanumeric chars (keep spaces/dashes), replace spaces with underscores, limit length
+        const sanitized = title.replace(/[^a-zA-Z0-9 \-_]/g, '').replace(/\s+/g, '_').substring(0, 50);
+        if (sanitized) {
+            filename = `${sanitized}_${itag}.${ext}`;
+        }
+    }
 
-    res.header('Content-Disposition', `attachment; filename="video_${itag}.mp4"`);
+    res.header('Content-Disposition', `attachment; filename="${filename}"`);
 
     const args = [
         '-f', itag,

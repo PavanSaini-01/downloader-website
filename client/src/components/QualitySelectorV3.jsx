@@ -25,7 +25,7 @@ const QualitySelector = ({ formats, audioFormats, onDownload }) => {
                     {formats.map((format, idx) => (
                         <button
                             key={`${format.itag}-${idx}`}
-                            onClick={() => onDownload(format.itag)}
+                            onClick={() => onDownload(format.itag, format.container)}
                             className={`group relative flex items-center justify-between p-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-accent-color/50 hover:shadow-[0_0_30px_-5px_var(--accent-color)] hover:shadow-accent-color/10 transition-all duration-300 ${!format.hasAudio ? 'opacity-90' : ''}`}
                         >
                             <div className="flex flex-col items-start gap-1">
@@ -68,7 +68,7 @@ const QualitySelector = ({ formats, audioFormats, onDownload }) => {
                             {audioFormats.map((format, idx) => (
                                 <button
                                     key={`${format.itag}-${idx}-audio`}
-                                    onClick={() => onDownload(format.itag)}
+                                    onClick={() => onDownload(format.itag, format.container)}
                                     className="group relative flex items-center justify-between p-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-purple-500/50 hover:shadow-[0_0_30px_-5px_rgba(168,85,247,0.3)] transition-all duration-300"
                                 >
                                     <div className="flex flex-col items-start gap-1">

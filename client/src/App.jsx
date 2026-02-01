@@ -34,7 +34,7 @@ function App() {
     }
   };
 
-  const handleDownload = (itag) => {
+  const handleDownload = (itag, container) => {
     if (!currentUrl) return;
 
     // Use hidden iframe or window location to trigger download w/o replacing page content if possible, 
@@ -46,7 +46,7 @@ function App() {
       return 'http://localhost:4000';
     };
     const apiUrl = getApiUrl();
-    window.location.href = `${apiUrl}/api/download?url=${encodeURIComponent(currentUrl)}&itag=${itag}`;
+    window.location.href = `${apiUrl}/api/download?url=${encodeURIComponent(currentUrl)}&itag=${itag}&title=${encodeURIComponent(videoInfo?.title || '')}&container=${container || 'mp4'}`;
   };
 
   return (
