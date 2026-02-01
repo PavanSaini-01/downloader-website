@@ -28,4 +28,14 @@ COPY server/ ./
 COPY --from=client-build /usr/src/app/client/dist ./public
 
 EXPOSE 4000
-CMD [ "npm", "start" ]
+
+# Create startup script that decodes cookies from env var if present
+RUN echo '#!/bin/sh' > /usr/src/app/start.sh && \
+    echo 'if [ -n "$YOUTUBE_COOKIES_BASE64" ]; then' >> /usr/src/app/start.sh && \
+    echo '  echo "$YOUTUBE_COOKIES_BASE64" | base64 -d > /usr/src/app/youtube_cookies.txt' >> /usr/src/app/start.sh && \
+    echo '  echo "YouTube cookies loaded from environment variable"' >> /usr/src/app/start.sh && \
+    echo 'fi' >> /usr/src/app/start.sh && \
+    echo 'exec npm start' >> /usr/src/app/start.sh && \
+    chmod +x /usr/src/app/start.sh
+
+CMD ["/usr/src/app/start.sh"]

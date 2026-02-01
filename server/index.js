@@ -39,13 +39,23 @@ app.get('/api/info', (req, res) => {
     }
 
     // Spawn yt-dlp process to get JSON info
-    // Added flags to fix runtime error and bypass bot checks
+    // Using multiple strategies to bypass bot detection
     const args = [
         '-J',
         '--no-playlist',
-        '--extractor-args', 'youtube:player_client=ios',
+        // Try multiple clients as fallback: ios,web,mweb
+        '--extractor-args', 'youtube:player_client=ios,web',
+        // Skip unavailable fragments (helps with some restricted videos)
+        '--extractor-args', 'youtube:skip=hls,dash',
         videoURL
     ];
+
+    // Check if cookies file exists (optional, for authenticated access)
+    const cookiesPath = path.join(__dirname, 'youtube_cookies.txt');
+    if (fs.existsSync(cookiesPath)) {
+        args.splice(1, 0, '--cookies', cookiesPath);
+        console.log('Using cookies file for authentication');
+    }
     const ytDlp = spawn(ytDlpPath, args);
 
     let dataBuffer = '';
@@ -142,9 +152,16 @@ app.get('/api/download', (req, res) => {
     const args = [
         '-f', itag,
         '-o', '-',
-        '--extractor-args', 'youtube:player_client=ios',
+        '--extractor-args', 'youtube:player_client=ios,web',
+        '--extractor-args', 'youtube:skip=hls,dash',
         url
     ];
+
+    // Use cookies if available
+    const cookiesPath = path.join(__dirname, 'youtube_cookies.txt');
+    if (fs.existsSync(cookiesPath)) {
+        args.splice(1, 0, '--cookies', cookiesPath);
+    }
     const ytDlp = spawn(ytDlpPath, args);
 
     ytDlp.stdout.pipe(res);
