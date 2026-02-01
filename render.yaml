@@ -9,3 +9,5 @@ services:
     envVars:
       - key: PORT
         value: 4000
+      - key: YOUTUBE_COOKIES_BASE64
+        sync: false
