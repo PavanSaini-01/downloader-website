@@ -31,105 +31,120 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
+const STRATEGIES = [
+    { name: 'android_ios', args: ['--extractor-args', 'youtube:player_client=android,ios'] },
+    { name: 'web', args: ['--extractor-args', 'youtube:player_client=web'] },
+    { name: 'tv', args: ['--extractor-args', 'youtube:player_client=tv'] },
+    { name: 'default', args: [] }
+];
+
+function getVideoInfo(ytDlpPath, url, strategyIndex = 0) {
+    return new Promise((resolve, reject) => {
+        if (strategyIndex >= STRATEGIES.length) {
+            return reject(new Error('All strategies failed to fetch video info.'));
+        }
+
+        const strategy = STRATEGIES[strategyIndex];
+        console.log(`[Attempt ${strategyIndex + 1}/${STRATEGIES.length}] Using strategy: ${strategy.name}`);
+
+        const args = [
+            '-J',
+            '--no-playlist',
+            ...strategy.args,
+            url
+        ];
+
+        const cookiesPath = path.join(__dirname, 'youtube_cookies.txt');
+        if (fs.existsSync(cookiesPath)) {
+            // Insert cookies arg after -J
+            args.splice(1, 0, '--cookies', cookiesPath);
+        }
+
+        const child = spawn(ytDlpPath, args);
+        let dataBuffer = '';
+        let errorBuffer = '';
+
+        child.stdout.on('data', d => dataBuffer += d.toString());
+        child.stderr.on('data', d => errorBuffer += d.toString());
+
+        child.on('close', (code) => {
+            if (code !== 0) {
+                console.warn(`Strategy ${strategy.name} failed. Stderr: ${errorBuffer.slice(0, 200)}...`);
+                // Recursive retry
+                resolve(getVideoInfo(ytDlpPath, url, strategyIndex + 1));
+            } else {
+                try {
+                    const json = JSON.parse(dataBuffer);
+                    resolve({ info: json, strategy: strategy.name });
+                } catch (e) {
+                    console.warn(`Strategy ${strategy.name} produced invalid JSON.`);
+                    resolve(getVideoInfo(ytDlpPath, url, strategyIndex + 1));
+                }
+            }
+        });
+    });
+}
+
 // Get video info
-app.get('/api/info', (req, res) => {
+app.get('/api/info', async (req, res) => {
     const videoURL = req.query.url;
     if (!videoURL) {
         return res.status(400).json({ error: 'Invalid YouTube URL' });
     }
 
-    // Spawn yt-dlp process to get JSON info
-    // Using multiple strategies to bypass bot detection and age restrictions
-    const args = [
-        '-J',
-        '--no-playlist',
-        // Android client works best for age-restricted content
-        '--extractor-args', 'youtube:player_client=android,ios',
-        videoURL
-    ];
+    try {
+        const result = await getVideoInfo(ytDlpPath, videoURL);
+        const info = result.info;
 
-    // Check if cookies file exists (optional, for authenticated access)
-    const cookiesPath = path.join(__dirname, 'youtube_cookies.txt');
-    if (fs.existsSync(cookiesPath)) {
-        args.splice(1, 0, '--cookies', cookiesPath);
-        console.log('Using cookies file for authentication');
-    }
-    const ytDlp = spawn(ytDlpPath, args);
+        // Process formats as before
+        const rawFormats = info.formats || [];
+        const relevantFormats = rawFormats
+            .filter(f => f.vcodec !== 'none')
+            .sort((a, b) => (b.height || 0) - (a.height || 0));
 
-    let dataBuffer = '';
-    let errorBuffer = '';
+        const audioFormats = rawFormats
+            .filter(f => f.vcodec === 'none' && f.acodec !== 'none');
 
-    ytDlp.stdout.on('data', (data) => {
-        dataBuffer += data.toString();
-    });
-
-    ytDlp.stderr.on('data', (data) => {
-        errorBuffer += data.toString();
-    });
-
-    ytDlp.on('close', (code) => {
-        if (code !== 0) {
-            console.error('yt-dlp error:', errorBuffer);
-            return res.status(500).json({ error: 'Failed to fetch info. ' + errorBuffer });
-        }
-
-        try {
-            const info = JSON.parse(dataBuffer);
-
-            // Map yt-dlp formats to our UI expectations
-            // yt-dlp: format_id, ext, resolution, vcodec, acodec
-
-            const rawFormats = info.formats || [];
-
-            const relevantFormats = rawFormats
-                .filter(f => f.vcodec !== 'none') // Include all video formats, even if no audio
-                .sort((a, b) => (b.height || 0) - (a.height || 0));
-
-
-
-            const audioFormats = rawFormats
-                .filter(f => f.vcodec === 'none' && f.acodec !== 'none');
-
-            const videoInfo = {
-                title: info.title,
-                thumbnail: info.thumbnail,
-                lengthSeconds: info.duration,
-                channel: info.channel || info.uploader || 'Unknown',
-                uploader: info.uploader,
-                viewCount: info.view_count || 0,
-                uploadDate: info.upload_date,
-                formats: relevantFormats.map(f => {
-                    const heightStr = `${f.height}p`;
-                    const note = f.format_note && f.format_note !== heightStr ? ` ${f.format_note}` : '';
-                    return {
-                        itag: f.format_id, // Mapping format_id to itag for frontend compat
-                        qualityLabel: `${heightStr}${note}`,
-                        container: f.ext,
-                        mimeType: `video/${f.ext}`,
-                        hasAudio: f.acodec !== 'none',
-                        hasVideo: f.vcodec !== 'none',
-                        size: f.filesize || f.filesize_approx || 0,
-                        url: f.url // Direct CDN URL from yt-dlp
-                    };
-                }),
-                audioFormats: audioFormats.map(f => ({
+        const videoInfo = {
+            title: info.title,
+            thumbnail: info.thumbnail,
+            lengthSeconds: info.duration,
+            channel: info.channel || info.uploader || 'Unknown',
+            uploader: info.uploader,
+            viewCount: info.view_count || 0,
+            uploadDate: info.upload_date,
+            formats: relevantFormats.map(f => {
+                const heightStr = `${f.height}p`;
+                const note = f.format_note && f.format_note !== heightStr ? ` ${f.format_note}` : '';
+                return {
                     itag: f.format_id,
+                    qualityLabel: `${heightStr}${note}`,
                     container: f.ext,
-                    audioBitrate: Math.round(f.abr || 0),
-                    mimeType: `audio/${f.ext}`,
-                    hasAudio: true,
-                    hasVideo: false,
+                    mimeType: `video/${f.ext}`,
+                    hasAudio: f.acodec !== 'none',
+                    hasVideo: f.vcodec !== 'none',
                     size: f.filesize || f.filesize_approx || 0,
-                    url: f.url // Direct CDN URL
-                }))
-            };
+                    url: f.url
+                };
+            }),
+            audioFormats: audioFormats.map(f => ({
+                itag: f.format_id,
+                container: f.ext,
+                audioBitrate: Math.round(f.abr || 0),
+                mimeType: `audio/${f.ext}`,
+                hasAudio: true,
+                hasVideo: false,
+                size: f.filesize || f.filesize_approx || 0,
+                url: f.url
+            }))
+        };
 
-            res.json(videoInfo);
-        } catch (e) {
-            console.error('JSON parse error:', e);
-            res.status(500).json({ error: 'Failed to parse video info' });
-        }
-    });
+        res.json(videoInfo);
+
+    } catch (error) {
+        console.error('Final error fetching video info:', error);
+        res.status(500).json({ error: 'Failed to fetch video info after multiple attempts.' });
+    }
 });
 
 // Download video
