@@ -35,6 +35,7 @@ const STRATEGIES = [
     { name: 'android_ios', args: ['--extractor-args', 'youtube:player_client=android,ios'] },
     { name: 'web', args: ['--extractor-args', 'youtube:player_client=web'] },
     { name: 'tv', args: ['--extractor-args', 'youtube:player_client=tv'] },
+    { name: 'clean', args: ['--extractor-args', 'youtube:player_client=android,ios'], noCookies: true }, // Try without cookies
     { name: 'default', args: [] }
 ];
 
@@ -55,7 +56,7 @@ function getVideoInfo(ytDlpPath, url, strategyIndex = 0) {
         ];
 
         const cookiesPath = path.join(__dirname, 'youtube_cookies.txt');
-        if (fs.existsSync(cookiesPath)) {
+        if (fs.existsSync(cookiesPath) && !strategy.noCookies) {
             // Insert cookies arg after -J
             args.splice(1, 0, '--cookies', cookiesPath);
         }
@@ -145,6 +146,48 @@ app.get('/api/info', async (req, res) => {
         console.error('Final error fetching video info:', error);
         res.status(500).json({ error: 'Failed to fetch video info after multiple attempts.' });
     }
+});
+
+app.get('/api/debug', (req, res) => {
+    // 1. Check yt-dlp version
+    execFile(ytDlpPath, ['--version'], (err, stdout, stderr) => {
+        const version = err ? 'Error getting version' : stdout.trim();
+
+        // 2. Check cookies
+        const cookiesPath = path.join(__dirname, 'youtube_cookies.txt');
+        const hasCookies = fs.existsSync(cookiesPath);
+        const cookiesSize = hasCookies ? fs.statSync(cookiesPath).size : 0;
+
+        // 3. Test a known video (optional, can be triggered via query)
+        const testUrl = req.query.url;
+        let testResult = 'Not requested';
+
+        if (testUrl) {
+            const child = spawn(ytDlpPath, ['-J', '--no-playlist', testUrl]);
+            let buf = '';
+            let errBuf = '';
+            child.stdout.on('data', d => buf += d.toString());
+            child.stderr.on('data', d => errBuf += d.toString());
+            child.on('close', (code) => {
+                res.json({
+                    version,
+                    cookies: { exists: hasCookies, size: cookiesSize },
+                    test: {
+                        url: testUrl,
+                        code,
+                        stdout_preview: buf.substring(0, 200),
+                        stderr: errBuf
+                    }
+                });
+            });
+        } else {
+            res.json({
+                version,
+                cookies: { exists: hasCookies, size: cookiesSize },
+                message: 'Pass ?url=YOUTUBE_URL to test download'
+            });
+        }
+    });
 });
 
 // Download video
