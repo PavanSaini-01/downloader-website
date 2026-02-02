@@ -177,7 +177,8 @@ app.get('/api/debug', (req, res) => {
 });
 
 // Serve React App for any other route
-app.get('*', (req, res) => {
+// Serve React App for any other route
+app.get('/*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
