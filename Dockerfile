@@ -12,11 +12,6 @@ RUN npm run build
 FROM node:18-alpine
 WORKDIR /usr/src/app
 
-# Install dependencies for yt-dlp
-RUN apk add --no-cache python3 py3-pip ffmpeg
-# Install yt-dlp
-RUN pip3 install --no-cache-dir https://github.com/yt-dlp/yt-dlp/archive/master.zip --break-system-packages || pip3 install --no-cache-dir https://github.com/yt-dlp/yt-dlp/archive/master.zip
-
 # Install Node dependencies
 COPY server/package*.json ./
 RUN npm install
