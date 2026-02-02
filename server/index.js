@@ -27,9 +27,22 @@ process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception:', err);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
+
+
+// Setup Cookies from Environment Variable
+const cookiesEnv = process.env.YOUTUBE_COOKIES_BASE64;
+if (cookiesEnv) {
+    try {
+        const cookiesPath = path.join(__dirname, 'youtube_cookies.txt');
+        const decoded = Buffer.from(cookiesEnv, 'base64').toString('utf-8');
+        fs.writeFileSync(cookiesPath, decoded);
+        console.log('Successfully created youtube_cookies.txt from environment variable.');
+    } catch (err) {
+        console.error('Error creating cookies file from env var:', err);
+    }
+} else {
+    console.log('YOUTUBE_COOKIES_BASE64 not found in environment.');
+}
 
 const STRATEGIES = [
     { name: 'android_ios', args: ['--extractor-args', 'youtube:player_client=android,ios'] },
@@ -158,6 +171,10 @@ app.get('/api/debug', (req, res) => {
         const hasCookies = fs.existsSync(cookiesPath);
         const cookiesSize = hasCookies ? fs.statSync(cookiesPath).size : 0;
 
+        // 3. Env Var check
+        const hasEnvVar = !!process.env.YOUTUBE_COOKIES_BASE64;
+        const envVarLen = hasEnvVar ? process.env.YOUTUBE_COOKIES_BASE64.length : 0;
+
         // 3. Test a known video (optional, can be triggered via query)
         const testUrl = req.query.url;
         let testResult = 'Not requested';
@@ -171,6 +188,12 @@ app.get('/api/debug', (req, res) => {
             child.on('close', (code) => {
                 res.json({
                     version,
+                    cwd: __dirname,
+                    dir_files: fs.readdirSync(__dirname),
+                    env: {
+                        has_cookie_var: hasEnvVar,
+                        var_length: envVarLen
+                    },
                     cookies: { exists: hasCookies, size: cookiesSize },
                     test: {
                         url: testUrl,
@@ -180,9 +203,14 @@ app.get('/api/debug', (req, res) => {
                     }
                 });
             });
-        } else {
             res.json({
                 version,
+                cwd: __dirname,
+                dir_files: fs.readdirSync(__dirname),
+                env: {
+                    has_cookie_var: hasEnvVar,
+                    var_length: envVarLen
+                },
                 cookies: { exists: hasCookies, size: cookiesSize },
                 message: 'Pass ?url=YOUTUBE_URL to test download'
             });
