@@ -30,7 +30,8 @@ process.on('uncaughtException', (err) => {
 
 
 // Setup Cookies from Environment Variable
-const cookiesEnv = process.env.YOUTUBE_COOKIES_BASE64;
+// Setup Cookies from Environment Variable
+const cookiesEnv = process.env.YOUTUBE_COOKIES_BASE64 || process.env['YOUTUBE COOKIES BASE64'];
 if (cookiesEnv) {
     try {
         const cookiesPath = path.join(__dirname, 'youtube_cookies.txt');
@@ -172,8 +173,9 @@ app.get('/api/debug', (req, res) => {
         const cookiesSize = hasCookies ? fs.statSync(cookiesPath).size : 0;
 
         // 3. Env Var check
-        const hasEnvVar = !!process.env.YOUTUBE_COOKIES_BASE64;
-        const envVarLen = hasEnvVar ? process.env.YOUTUBE_COOKIES_BASE64.length : 0;
+        const cookiesEnv = process.env.YOUTUBE_COOKIES_BASE64 || process.env['YOUTUBE COOKIES BASE64'];
+        const hasEnvVar = !!cookiesEnv;
+        const envVarLen = hasEnvVar ? cookiesEnv.length : 0;
 
         // 3. Test a known video (optional, can be triggered via query)
         const testUrl = req.query.url;
